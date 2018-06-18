@@ -3,8 +3,9 @@
 
 namespace App\Service;
 
+use App\Service\Crawler\iCrawler;
+use App\Service\iDbService;
 use Symfony\Component\Console\Output\OutputInterface;
-use App\Service\FirebaseService;
 
 class CrawlerService
 {
@@ -14,13 +15,28 @@ class CrawlerService
     protected $output;
     
     /**
-     * @var iDbAdapterService $dbAdapterService 
+     * @var iDbService $dbAdapterService
      */
-    protected $dbAdapterService;
+    protected $dbService;
+
+    /**
+     * @var iCrawler $crawler
+     */
+    protected $crawler;
     
     public function setOutput(OutputInterface $output)
     {
         $this->output = $output;
+    }
+
+    public function setDbService(iDbService $dbService)
+    {
+        $this->dbService = $dbService;
+    }
+
+    public function setCrawler(iCrawler $crawler)
+    {
+        $this->crawler = $crawler;
     }
 
     public function writeOutput($text, $ln = true)
@@ -36,23 +52,21 @@ class CrawlerService
     }
     
     /**
-     * Constructor 
-     * 
-     * @param FirebaseService $dbAdapterService
+     * Crawl with information
+     *
      */
-    public function __construct(FirebaseService $dbAdapterService)
-    {
-        $this->dbAdapterService = $dbAdapterService;
-    }
-    
-    /**
-     * Crawl with Tag information
-     * 
-     * @throws NoTagBrandCrawlerException
-     */
-    public function crawl()
+    public function crawl($brand)
     {   
         set_time_limit(3600);
+
+        foreach ($this->crawler->getModels($brand) as $model) {
+            $this->writeOutput('Model : ' . $model['id']);
+
+            foreach ($this->crawler->getMotorizations($model) as $motorization) {
+                $this->writeOutput('Motorization : ' . $motorization['id']);
+            }
+        }
+
         $this->writeOutput('End crawling');      
     }
 }

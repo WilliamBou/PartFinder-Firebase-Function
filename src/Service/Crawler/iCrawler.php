@@ -7,6 +7,6 @@ namespace App\Service\Crawler;
  */
 interface iCrawler
 {   
-    public function getModels($brand) : Array;
-    public function getMotorizations($model) : Array;
+    public function getModels($brand) : array ;
+    public function getMotorizations($model) : array;
 }

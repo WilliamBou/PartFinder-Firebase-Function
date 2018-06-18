@@ -1,21 +1,28 @@
 <?php
 namespace App\Service\Crawler;
 
+use App\Service\iDbService;
+
 /**
  * Crawler for Oscaro
  * 
  */
 class Oscaro implements iCrawler
 {
+
+    /**
+     * @var iDbService $dbService
+     */
+    protected $dbService;
     /*
      * Construct
      */
-    public function __construct() 
+    public function __construct(iDbService $dbService)
     {
-        $this->externalId = External::OSCARO;
+        $this->dbService = $dbService;
     }
    
-    public function getModels($brand) : Array
+    public function getModels($brand) : array
     {
         $models = [];
         
@@ -23,7 +30,7 @@ class Oscaro implements iCrawler
         $curl = curl_init();
 
         $postfields = [
-            'idOscManufacturer' => $brand->getExternalMapping()
+            'idOscManufacturer' => $this->dbService->getExternalId($brand)
         ];
         
         curl_setopt($curl, CURLOPT_URL, $url);
@@ -38,21 +45,19 @@ class Oscaro implements iCrawler
         foreach (json_decode($return, true) as $groupModel) {
             foreach($groupModel['Items'] as $element) {
                 if (!$element["Disabled"]) {
-                    /* @var Tag $model */
-                    $model = $this->createModel($element, $brand);
-                    $models->add($model);
-                    $this->entityManager->persist($model);
+                    $model = $this->dbService->createModel($element, $brand);
+                    $models[] = $this->dbService->saveModel($model);
                 }  
-            } 
-            $this->entityManager->flush();
+            }
         }
-        $this->entityManager->persist($brand);
-        $this->entityManager->flush();
-        
+
+        $this->dbService->addModelsToBrand($brand, $models);
+        $this->dbService->saveBrand($brand);
+
         return $models;
     }
     
-    public function getMotorizations($model) : Array
+    public function getMotorizations($model) : array
     {
         $motorizations = [];
         
@@ -60,7 +65,7 @@ class Oscaro implements iCrawler
         $curl = curl_init();
 
         $postfields = [
-            'idOscModel' => $model->getExternalMapping()
+            'idOscModel' => $this->dbService->getExternalId($model)
         ];
         
         curl_setopt($curl, CURLOPT_URL, $url);
@@ -79,15 +84,15 @@ class Oscaro implements iCrawler
             
             foreach($groupMotorization['Items'] as $element) {
                 if (!$element["Disabled"]) {
-                    /* @var Tag $motorization */
-                    $motorization = $this->createMotorization($element, $model, $prefixe);
-                    $motorizations->add($motorization);
-                    $this->entityManager->persist($motorization);
+                    $motorization = $this->dbService->createMotorization($element, $model, $prefixe);
+                    $motorizations[] = $this->dbService->saveMotorization($motorization);
                 }   
             }
-            $this->entityManager->flush();
         }
-        
+
+        $this->dbService->addMotorizationsToModel($model, $motorizations);
+        $this->dbService->saveModel($model);
+
         return $motorizations;
     }
 }

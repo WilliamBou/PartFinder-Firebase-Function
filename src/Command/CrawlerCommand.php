@@ -2,6 +2,8 @@
 // api/src/Command/CreateUserCommand.php
 namespace App\Command;
 
+use App\Service\Crawler\Oscaro;
+use App\Service\FirebaseService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -32,7 +34,16 @@ class CrawlerCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->crawlerService->setOutput($output);
-        $this->crawlerService->crawl();
+        $firebaseService = new FirebaseService();
+        $firebaseService->setExternalProvider('OSCARO');
+        $dbService = new Oscaro($firebaseService);
+
+        $this->crawlerService->setDbService($firebaseService);
+        $this->crawlerService->setCrawler($dbService);
+
+        $brand = $firebaseService->findBrand($input->getArgument('brandId'));
+
+        $this->crawlerService->crawl($brand);
     }
 }
 
